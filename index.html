@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="hi" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO Meta Tags -->
+  <title>YouTube Transcript Extractor – Free Video Transcript & Subtitles Tool</title>
+  <meta name="description" content="Extract YouTube video transcripts instantly for free. Get full text transcript with or without timestamps. Perfect for students, content creators, researchers, and professionals." />
+  <meta name="keywords" content="youtube transcript, youtube subtitles extractor, video transcript tool, youtube caption download, transcript generator, youtube to text, free transcript tool" />
+  <meta name="author" content="TranscriptPro" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://avinashwalton.github.io/transcriptpro/" />
+
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://avinashwalton.github.io/transcriptpro/" />
+  <meta property="og:title" content="YouTube Transcript Extractor – Free Video Transcript Tool" />
+  <meta property="og:description" content="Extract YouTube video transcripts instantly for free. Get full text transcript with or without timestamps in one click." />
+  <meta property="og:image" content="https://avinashwalton.github.io/transcriptpro/og-image.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="YouTube Transcript Extractor – Free Tool" />
+  <meta name="twitter:description" content="Instantly extract full transcripts from any YouTube video. Copy with or without timestamps." />
+  <meta name="twitter:image" content="https://avinashwalton.github.io/transcriptpro/og-image.png" />
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "YouTube Transcript Extractor",
+    "description": "Free tool to extract transcripts from YouTube videos with or without timestamps.",
+    "url": "https://avinashwalton.github.io/transcriptpro/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Background Noise Texture -->
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <!-- Floating Orbs -->
+  <div class="orb orb-1" aria-hidden="true"></div>
+  <div class="orb orb-2" aria-hidden="true"></div>
+  <div class="orb orb-3" aria-hidden="true"></div>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header" role="banner">
+    <div class="container header-inner">
+      <a href="/" class="logo" aria-label="TranscriptPro Home">
+        <span class="logo-icon" aria-hidden="true">▶</span>
+        <span class="logo-text">Transcript<em>Pro</em></span>
+      </a>
+      <nav class="header-nav" aria-label="Main Navigation">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero-inner">
+        <div class="hero-badge">
+          <span class="badge-dot" aria-hidden="true"></span>
+          100% Free · No Sign-up Required
+        </div>
+        <h1 id="hero-title">
+          YouTube <span class="accent">Transcript</span><br/>Extractor
+        </h1>
+        <p class="hero-subtitle">
+          किसी भी YouTube video का full transcript एक click में। Text copy करें — timestamps के साथ या बिना।
+        </p>
+
+        <!-- ===== INPUT CARD ===== -->
+        <div class="input-card" role="search" aria-label="YouTube URL Input">
+          <div class="input-row">
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </span>
+              <input
+                type="url"
+                id="youtube-url"
+                class="url-input"
+                placeholder="YouTube video URL paste करें..."
+                aria-label="YouTube Video URL"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button class="clear-btn" id="clear-btn" aria-label="Clear input" title="Clear" style="display:none;">✕</button>
+            </div>
+            <button class="extract-btn" id="extract-btn" aria-label="Extract Transcript">
+              <span class="btn-text">Extract</span>
+              <span class="btn-icon" aria-hidden="true">→</span>
+            </button>
+          </div>
+          <div class="input-hints" aria-live="polite">
+            <span>Supports:</span>
+            <code>youtube.com/watch?v=</code>
+            <code>youtu.be/</code>
+            <code>youtube.com/shorts/</code>
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-msg" id="error-msg" role="alert" aria-live="assertive" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- ===== LOADING ===== -->
+    <section class="loading-section" id="loading-section" aria-live="polite" aria-label="Loading" style="display:none;">
+      <div class="container">
+        <div class="loader-card">
+          <div class="loader-bars" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p class="loader-text" id="loader-text">Fetching transcript…</p>
+          <p class="loader-sub">Processing video captions</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RESULT SECTION ===== -->
+    <section class="result-section" id="result-section" aria-label="Transcript Result" style="display:none;">
+      <div class="container">
+
+        <!-- Video Info Bar -->
+        <div class="video-info-bar" id="video-info-bar">
+          <div class="video-thumb-wrap">
+            <img id="video-thumb" src="" alt="Video thumbnail" class="video-thumb" loading="lazy" />
+            <span class="play-overlay" aria-hidden="true">▶</span>
+          </div>
+          <div class="video-meta">
+            <h2 class="video-title" id="video-title">Video Title</h2>
+            <div class="video-stats">
+              <span id="video-channel" class="stat-chip">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                Channel
+              </span>
+              <span id="transcript-word-count" class="stat-chip">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+                Words
+              </span>
+              <span id="transcript-duration" class="stat-chip">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Duration
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="tab-btn active" id="tab-plain" data-tab="plain" aria-selected="true" role="tab">
+              📄 Plain Text
+            </button>
+            <button class="tab-btn" id="tab-timestamp" data-tab="timestamp" aria-selected="false" role="tab">
+              🕐 With Timestamps
+            </button>
+          </div>
+          <div class="controls-right">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" id="transcript-search" placeholder="Search in transcript…" aria-label="Search transcript" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Transcript Box -->
+        <div class="transcript-container" role="tabpanel">
+          <div class="transcript-box" id="transcript-plain" aria-label="Plain text transcript"></div>
+          <div class="transcript-box hidden" id="transcript-timestamp" aria-label="Timestamped transcript"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-bar">
+          <button class="action-btn primary" id="copy-plain-btn" aria-label="Copy plain text transcript">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy Plain Text
+          </button>
+          <button class="action-btn secondary" id="copy-ts-btn" aria-label="Copy transcript with timestamps">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Copy with Timestamps
+          </button>
+          <button class="action-btn ghost" id="download-btn" aria-label="Download transcript as text file">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download .txt
+          </button>
+          <button class="action-btn ghost" id="new-btn" aria-label="Extract another transcript">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.65"/></svg>
+            New Extract
+          </button>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="how-section" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-label">Simple Process</div>
+        <h2 id="how-title" class="section-title">3 Steps में Transcript Ready</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">01</div>
+            <div class="step-icon" aria-hidden="true">🔗</div>
+            <h3>URL Paste करें</h3>
+            <p>किसी भी YouTube video का link copy करके ऊपर paste करें।</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">02</div>
+            <div class="step-icon" aria-hidden="true">⚡</div>
+            <h3>Extract Click करें</h3>
+            <p>Extract button दबाएं और कुछ seconds में transcript तैयार।</p>
+          </div>
+          <div class="step-card">
+            <div class="step-number" aria-hidden="true">03</div>
+            <div class="step-icon" aria-hidden="true">📋</div>
+            <h3>Copy / Download</h3>
+            <p>Plain text या timestamps के साथ copy करें या .txt file download करें।</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="features-section" id="features" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-label">Why TranscriptPro</div>
+        <h2 id="features-title" class="section-title">सब कुछ एक जगह</h2>
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">⚡</div>
+            <h3>Lightning Fast</h3>
+            <p>Seconds में transcript extract होती है। कोई waiting नहीं।</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">🕐</div>
+            <h3>Timestamp Support</h3>
+            <p>हर line के साथ exact timestamp — जब चाहें jump करें।</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">🔍</div>
+            <h3>Transcript Search</h3>
+            <p>Transcript में किसी भी word को instantly search करें।</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">📥</div>
+            <h3>Download .txt</h3>
+            <p>पूरी transcript को text file में download करें offline use के लिए।</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">📱</div>
+            <h3>Mobile Friendly</h3>
+            <p>Phone और desktop दोनों पर perfectly काम करती है।</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">🔒</div>
+            <h3>No Login, Free</h3>
+            <p>कोई account नहीं, कोई payment नहीं। 100% free tool।</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="faq-section" id="faq" aria-labelledby="faq-title">
+      <div class="container">
+        <div class="section-label">FAQ</div>
+        <h2 id="faq-title" class="section-title">अक्सर पूछे जाने वाले सवाल</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary class="faq-q">क्या यह tool बिल्कुल free है?</summary>
+            <p class="faq-a">हाँ, TranscriptPro पूरी तरह free है। कोई sign-up या payment नहीं।</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">किन videos का transcript मिलेगा?</summary>
+            <p class="faq-a">उन videos का transcript मिलता है जिनमें YouTube captions/subtitles enabled हों — auto-generated या manual दोनों।</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">Timestamp वाला transcript किस format में होता है?</summary>
+            <p class="faq-a">हर line के आगे [MM:SS] format में timestamp होता है जो video के exact moment को indicate करता है।</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">क्या Hindi videos का transcript मिलता है?</summary>
+            <p class="faq-a">हाँ, अगर video में Hindi captions हैं तो transcript Hindi में मिलेगा। Auto-generated captions भी support होती हैं।</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">Private या Age-restricted videos?</summary>
+            <p class="faq-a">Private और age-restricted videos का transcript extract नहीं होता क्योंकि YouTube उनकी captions publicly accessible नहीं रखता।</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="logo-icon" aria-hidden="true">▶</span>
+        <span class="logo-text">Transcript<em>Pro</em></span>
+        <p class="footer-tagline">YouTube transcripts, instantly.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <p class="footer-copy">
+        &copy; <span id="year"></span> TranscriptPro. Not affiliated with YouTube or Google.
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
