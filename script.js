@@ -2,15 +2,13 @@
  * TranscriptPro – script.js
  * YouTube Transcript Extractor
  *
- * How it works:
- * YouTube stores caption tracks as .vtt / .srv3 / .json3 XML files.
- * The timedtext API endpoint is publicly accessible for videos with
- * auto-generated or manual captions.
- * We fetch the caption track list via the video page (noembed for metadata),
- * then fetch the caption XML directly.
+ * Strategy (in order):
+ * 1. youtube-transcript.netlify.app  — free public transcript API
+ * 2. Tactiq's public API             — another free source
+ * 3. YT page scrape via proxy        — fallback: fetch YT page, extract captionTracks JSON,
+ *    then fetch the actual caption XML/JSON3 through proxy
  *
- * Note: This works for videos with public captions.
- * Private/age-restricted videos may not return captions.
+ * CORS bypass: allorigins → corsproxy.io → thingproxy
  */
 
 'use strict';
@@ -328,52 +326,6 @@ async function fetchVideoMeta(videoId) {
   }
 }
 
-/* ─────────────────────────────────────────
-   TRANSCRIPT FETCH
-   Uses YouTube's public timedtext API.
-   Tries multiple languages and fallbacks.
-───────────────────────────────────────── */
-
-/* Parse YouTube's XML caption format (srv3 / timedtext XML) */
-function parseXmlCaptions(xmlText) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlText, 'text/xml');
-  const texts = doc.querySelectorAll('text');
-  const entries = [];
-
-  texts.forEach(node => {
-    const start  = parseFloat(node.getAttribute('start') || '0');
-    const rawText = node.textContent || '';
-    // Decode HTML entities
-    const decoded = decodeHtmlEntities(rawText);
-    if (decoded.trim()) {
-      entries.push({ start, text: decoded.trim() });
-    }
-  });
-
-  return entries;
-}
-
-/* Parse YouTube JSON3 format */
-function parseJson3Captions(jsonText) {
-  try {
-    const data = JSON.parse(jsonText);
-    const events = data.events || [];
-    const entries = [];
-    events.forEach(ev => {
-      if (!ev.segs) return;
-      const start = (ev.tStartMs || 0) / 1000;
-      const text  = ev.segs.map(s => s.utf8 || '').join('').trim();
-      if (text && text !== '\n') {
-        entries.push({ start, text: decodeHtmlEntities(text) });
-      }
-    });
-    return entries;
-  } catch {
-    return [];
-  }
-}
-
 function decodeHtmlEntities(str) {
   const map = {
     '&amp;':  '&',
@@ -415,109 +367,242 @@ function buildTranscripts(entries) {
 const PROXIES = [
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://cors-anywhere.herokuapp.com/${url}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
 ];
 
-async function fetchWithProxy(targetUrl) {
-  // Try direct first (works in some environments / extensions)
-  try {
-    const r = await fetch(targetUrl, { signal: AbortSignal.timeout(6000) });
-    if (r.ok) return await r.text();
-  } catch { /* silent */ }
-
-  // Try proxies
+async function fetchWithProxy(targetUrl, timeoutMs = 9000) {
+  // Try proxies in order
   for (const makeUrl of PROXIES) {
     try {
-      const r = await fetch(makeUrl(targetUrl), { signal: AbortSignal.timeout(8000) });
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), timeoutMs);
+      const r = await fetch(makeUrl(targetUrl), { signal: controller.signal });
+      clearTimeout(tid);
       if (r.ok) {
         const text = await r.text();
-        if (text && text.length > 50) return text;
+        if (text && text.trim().length > 30) return text;
       }
     } catch { /* try next */ }
   }
-  throw new Error('All proxy attempts failed');
+  throw new Error('proxy_fail');
 }
 
-/* Build YouTube timedtext URLs to try */
-function buildCaptionUrls(videoId) {
-  const base = 'https://www.youtube.com/api/timedtext';
-  const params = (lang, fmt) =>
-    `${base}?v=${videoId}&lang=${lang}&fmt=${fmt}&name=&kind=asr`;
-  const paramsManual = (lang, fmt) =>
-    `${base}?v=${videoId}&lang=${lang}&fmt=${fmt}&name=`;
+/* ─────────────────────────────────────────
+   STRATEGY 1: Public Transcript APIs
+   (third-party services that serve YT transcripts)
+───────────────────────────────────────── */
 
-  const urls = [];
-  const langs = ['en', 'hi', 'auto', 'en-US', 'en-GB'];
-  const fmts  = ['json3', 'srv3', 'vtt'];
+// Uses youtubetranscript.com API (free, no key)
+async function tryPublicApi1(videoId) {
+  const url = `https://www.youtubetranscript.com/?server_vid2=${videoId}`;
+  const html = await fetchWithProxy(url, 10000);
+  // Response is an HTML fragment with <text> tags
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const texts = doc.querySelectorAll('text');
+  if (!texts.length) return null;
+  const entries = [];
+  texts.forEach(node => {
+    const start = parseFloat(node.getAttribute('start') || '0');
+    const raw   = node.textContent || '';
+    const text  = decodeHtmlEntities(raw).trim();
+    if (text) entries.push({ start, text });
+  });
+  return entries.length ? entries : null;
+}
+
+// Uses get-youtube-subtitle npm-compatible REST endpoint
+async function tryPublicApi2(videoId) {
+  const url = `https://yt-subtitle-fetch.vercel.app/api/transcript?id=${videoId}`;
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const r = await fetch(url, { signal: controller.signal });
+    clearTimeout(tid);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!Array.isArray(data) || !data.length) return null;
+    return data.map(item => ({
+      start: parseFloat(item.offset || item.start || 0) / 1000,
+      text:  decodeHtmlEntities((item.text || '').trim()),
+    })).filter(e => e.text);
+  } catch { return null; }
+}
+
+/* ─────────────────────────────────────────
+   STRATEGY 2: YouTube page scrape + caption XML
+───────────────────────────────────────── */
+
+function parseXmlCaptions(xmlText) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, 'text/xml');
+  const texts = doc.querySelectorAll('text');
+  const entries = [];
+  texts.forEach(node => {
+    const start = parseFloat(node.getAttribute('start') || '0');
+    const raw   = node.textContent || '';
+    const text  = decodeHtmlEntities(raw).trim();
+    if (text) entries.push({ start, text });
+  });
+  return entries;
+}
+
+function parseJson3Captions(jsonText) {
+  try {
+    const data   = JSON.parse(jsonText);
+    const events = data.events || [];
+    const entries = [];
+    events.forEach(ev => {
+      if (!ev.segs) return;
+      const start = (ev.tStartMs || 0) / 1000;
+      const text  = ev.segs.map(s => s.utf8 || '').join('').trim();
+      if (text && text !== '\n') {
+        entries.push({ start, text: decodeHtmlEntities(text) });
+      }
+    });
+    return entries;
+  } catch { return []; }
+}
+
+function parseVttCaptions(vttText) {
+  const entries = [];
+  const blocks  = vttText.split(/\n\n+/);
+  blocks.forEach(block => {
+    const lines = block.trim().split('\n');
+    // Find timing line
+    const timingIdx = lines.findIndex(l => l.includes('-->'));
+    if (timingIdx === -1) return;
+    const timePart = lines[timingIdx].split('-->')[0].trim();
+    const parts    = timePart.split(':').map(parseFloat);
+    let start = 0;
+    if (parts.length === 3) start = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2) start = parts[0] * 60 + parts[1];
+    const textLines = lines.slice(timingIdx + 1).join(' ')
+      .replace(/<[^>]+>/g, '').trim();
+    if (textLines) entries.push({ start, text: decodeHtmlEntities(textLines) });
+  });
+  return entries;
+}
+
+async function tryPageScrape(videoId) {
+  setLoading(true, 'Fetching video page…');
+  const ytUrl   = `https://www.youtube.com/watch?v=${videoId}`;
+  const pageHtml = await fetchWithProxy(ytUrl, 15000);
+
+  // Try to find captionTracks in ytInitialPlayerResponse
+  const patterns = [
+    /"captionTracks":\s*(\[[\s\S]*?\])\s*,\s*"audioTracks"/,
+    /"captionTracks":\s*(\[[\s\S]*?\])\s*,\s*"translationLanguages"/,
+    /"captionTracks":\s*(\[[\s\S]*?\])/,
+  ];
+
+  let tracks = null;
+  for (const re of patterns) {
+    const m = pageHtml.match(re);
+    if (m) {
+      try {
+        tracks = JSON.parse(m[1]);
+        if (tracks.length) break;
+      } catch { /* try next pattern */ }
+    }
+  }
+
+  if (!tracks || !tracks.length) return null;
+
+  // Prefer English, then Hindi, then first available
+  const preferred = tracks.find(t => t.languageCode === 'en')
+    || tracks.find(t => t.languageCode === 'hi')
+    || tracks[0];
+
+  const baseUrl = preferred.baseUrl;
+  if (!baseUrl) return null;
+
+  // Try json3 first, then xml
+  setLoading(true, 'Downloading captions…');
+  const fmts = [
+    { url: baseUrl + '&fmt=json3', parser: parseJson3Captions },
+    { url: baseUrl,                parser: parseXmlCaptions   },
+    { url: baseUrl + '&fmt=vtt',   parser: parseVttCaptions   },
+  ];
+
+  for (const { url, parser } of fmts) {
+    try {
+      const raw     = await fetchWithProxy(url, 10000);
+      const entries = parser(raw);
+      if (entries.length) return entries;
+    } catch { /* try next */ }
+  }
+
+  return null;
+}
+
+/* ─────────────────────────────────────────
+   STRATEGY 3: Direct timedtext API
+───────────────────────────────────────── */
+async function tryTimedtextApi(videoId) {
+  const base  = 'https://www.youtube.com/api/timedtext';
+  const langs = ['en', 'hi', 'en-US', 'en-GB', 'a.en'];
+  const kinds = ['asr', ''];
 
   for (const lang of langs) {
-    for (const fmt of fmts) {
-      urls.push({ url: params(lang, fmt),       fmt, source: 'auto' });
-      urls.push({ url: paramsManual(lang, fmt), fmt, source: 'manual' });
+    for (const kind of kinds) {
+      for (const fmt of ['json3', 'srv3']) {
+        const url = `${base}?v=${videoId}&lang=${lang}&fmt=${fmt}${kind ? '&kind=' + kind : ''}`;
+        try {
+          setLoading(true, `Trying captions (${lang})…`);
+          const raw     = await fetchWithProxy(url, 8000);
+          if (!raw || raw.length < 50) continue;
+          const entries = fmt === 'json3' ? parseJson3Captions(raw) : parseXmlCaptions(raw);
+          if (entries.length) return entries;
+        } catch { /* continue */ }
+      }
     }
   }
-  return urls;
+  return null;
 }
 
+/* ─────────────────────────────────────────
+   MAIN FETCH TRANSCRIPT ORCHESTRATOR
+───────────────────────────────────────── */
 async function fetchTranscript(videoId) {
-  const captionUrls = buildCaptionUrls(videoId);
-  const errors = [];
+  let entries = null;
 
-  for (const { url, fmt } of captionUrls) {
-    try {
-      setLoading(true, `Trying ${fmt.toUpperCase()} captions…`);
-      const text = await fetchWithProxy(url);
-
-      if (!text || text.trim().length < 30) continue;
-
-      let entries = [];
-
-      if (fmt === 'json3') {
-        entries = parseJson3Captions(text);
-      } else {
-        // XML-based (srv3, vtt — both parseable as XML for srv3)
-        entries = parseXmlCaptions(text);
-      }
-
-      if (entries.length > 0) {
-        return buildTranscripts(entries);
-      }
-    } catch (e) {
-      errors.push(e.message);
-    }
-  }
-
-  // Fallback: try fetching the video page and extracting caption track URL
+  // 1. Public API 1
   try {
-    setLoading(true, 'Scanning video page for captions…');
-    const pageText = await fetchWithProxy(`https://www.youtube.com/watch?v=${videoId}`);
+    setLoading(true, 'Fetching transcript (1/3)…');
+    entries = await tryPublicApi1(videoId);
+  } catch { /* fall through */ }
+  if (entries && entries.length) return buildTranscripts(entries);
 
-    // Extract captionTracks JSON from page
-    const captionMatch = pageText.match(/"captionTracks":\s*(\[.*?\])/s) ||
-                         pageText.match(/"captions":\s*\{.*?"playerCaptionsTracklistRenderer":\s*\{.*?"captionTracks":\s*(\[.*?\])/s);
+  // 2. Public API 2
+  try {
+    setLoading(true, 'Fetching transcript (2/3)…');
+    entries = await tryPublicApi2(videoId);
+  } catch { /* fall through */ }
+  if (entries && entries.length) return buildTranscripts(entries);
 
-    if (captionMatch) {
-      const tracks = JSON.parse(captionMatch[1]);
-      if (tracks.length > 0) {
-        const trackUrl = tracks[0].baseUrl;
-        const xmlText  = await fetchWithProxy(trackUrl + '&fmt=json3');
-        const entries  = parseJson3Captions(xmlText);
-        if (entries.length) return buildTranscripts(entries);
+  // 3. Page scrape
+  try {
+    setLoading(true, 'Scanning video page (3/3)…');
+    entries = await tryPageScrape(videoId);
+  } catch { /* fall through */ }
+  if (entries && entries.length) return buildTranscripts(entries);
 
-        const xmlText2 = await fetchWithProxy(trackUrl);
-        const entries2 = parseXmlCaptions(xmlText2);
-        if (entries2.length) return buildTranscripts(entries2);
-      }
-    }
-  } catch (e) {
-    errors.push('page-scan: ' + e.message);
-  }
+  // 4. Direct timedtext API
+  try {
+    entries = await tryTimedtextApi(videoId);
+  } catch { /* fall through */ }
+  if (entries && entries.length) return buildTranscripts(entries);
 
+  // All failed
   throw new Error(
-    'इस video का transcript नहीं मिला। संभावित कारण:\n' +
+    'इस video का transcript नहीं मिला।\n\n' +
+    'संभावित कारण:\n' +
     '• Video में captions/subtitles disabled हैं\n' +
     '• Video private या age-restricted है\n' +
-    '• YouTube API temporarily unavailable है'
+    '• CORS proxy temporarily unavailable है — 1 minute बाद retry करें\n\n' +
+    'Tip: English captions वाले videos पर best काम करता है।'
   );
 }
 
