@@ -810,13 +810,13 @@ details[open] .faq-q::after { transform: rotate(45deg); }
    ================================================ */
 .site-footer {
   border-top: 1px solid var(--border);
-  padding: 40px 0;
+  padding: 48px 0 32px;
 }
 .footer-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
   text-align: center;
 }
 .footer-brand {
@@ -825,7 +825,18 @@ details[open] .faq-q::after { transform: rotate(45deg); }
   align-items: center;
   gap: 6px;
 }
-.footer-brand .logo-icon {
+.footer-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text);
+  transition: opacity var(--transition);
+}
+.footer-logo-link:hover { opacity: 0.75; }
+.footer-logo-link .logo-icon {
   display: inline-grid;
   place-items: center;
   width: 30px; height: 30px;
@@ -833,12 +844,10 @@ details[open] .faq-q::after { transform: rotate(45deg); }
   border-radius: 7px;
   font-size: 0.7rem;
   color: #000;
-  margin-bottom: 2px;
 }
-.footer-brand .logo-text {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 800;
+.footer-logo-link .logo-text em {
+  font-style: normal;
+  color: var(--accent);
 }
 .footer-tagline {
   font-size: 0.8rem;
@@ -851,8 +860,132 @@ details[open] .faq-q::after { transform: rotate(45deg); }
   color: var(--text-3);
 }
 .footer-links a:hover { color: var(--text-2); }
-.footer-copy {
+
+/* ── Social Badges ── */
+.social-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+.social-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 100px;
   font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  border: 1px solid transparent;
+  transition: all var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.social-badge.youtube {
+  background: rgba(255, 0, 0, 0.08);
+  border-color: rgba(255, 0, 0, 0.2);
+  color: #ff4444;
+}
+.social-badge.youtube:hover {
+  background: rgba(255, 0, 0, 0.16);
+  border-color: rgba(255, 0, 0, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(255, 0, 0, 0.2);
+}
+.social-badge.facebook {
+  background: rgba(24, 119, 242, 0.08);
+  border-color: rgba(24, 119, 242, 0.2);
+  color: #4a90e2;
+}
+.social-badge.facebook:hover {
+  background: rgba(24, 119, 242, 0.15);
+  border-color: rgba(24, 119, 242, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.2);
+}
+.social-badge.twitter {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-2);
+}
+.social-badge.twitter:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+.social-badge.instagram {
+  background: rgba(228, 64, 95, 0.08);
+  border-color: rgba(228, 64, 95, 0.2);
+  color: #e4405f;
+}
+.social-badge.instagram:hover {
+  background: rgba(228, 64, 95, 0.15);
+  border-color: rgba(228, 64, 95, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(228, 64, 95, 0.2);
+}
+.social-badge.threads {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-2);
+}
+.social-badge.threads:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+.social-badge.linkedin {
+  background: rgba(0, 119, 181, 0.08);
+  border-color: rgba(0, 119, 181, 0.2);
+  color: #0a9adc;
+}
+.social-badge.linkedin:hover {
+  background: rgba(0, 119, 181, 0.15);
+  border-color: rgba(0, 119, 181, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 119, 181, 0.2);
+}
+
+/* ── Footer Bottom ── */
+.footer-divider {
+  width: 60px;
+  height: 1px;
+  background: var(--border);
+}
+.footer-made {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.heart {
+  font-size: 1.1rem;
+  animation: heartbeat 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.2); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.15); }
+  56%       { transform: scale(1); }
+}
+.india-flag { font-size: 1rem; }
+.author-link {
+  color: var(--accent);
+  font-weight: 600;
+  transition: opacity var(--transition);
+}
+.author-link:hover { opacity: 0.75; text-decoration: underline; }
+.footer-copy {
+  font-size: 0.78rem;
   color: var(--text-3);
 }
 
@@ -872,6 +1005,10 @@ details[open] .faq-q::after { transform: rotate(45deg); }
    RESPONSIVE
    ================================================ */
 @media (max-width: 768px) {
+  .social-links { gap: 8px; }
+  .social-badge span { display: none; }
+  .social-badge { padding: 9px 12px; border-radius: 50%; }
+
   .header-nav { display: none; }
 
   .hero { padding: 50px 0 40px; }
